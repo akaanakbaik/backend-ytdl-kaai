@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# ==============================================================================
+#  KAAI BACKEND SYSTEM v5.1 (Stable)
+#  Fix: FFmpeg Integration & DASH Support
+# ==============================================================================
+
+BOLD='\033[1m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+header() {
+    clear
+    echo -e "${CYAN}"
+    echo "  KAAI BACKEND SYSTEM"
+    echo "  [Logic Update] Removed DASH Restrictions"
+    echo -e "${NC}"
+    echo -e "${BOLD}------------------------------------------------------------${NC}"
+}
+
+header
+echo -e "${CYAN}[SYSTEM]${NC} Initializing..."
+
+# 1. CLEANUP
+TRASH=("__pycache__" ".local" ".cache")
+for item in "${TRASH[@]}"; do
+    rm -rf "$item" 2>/dev/null
+done
+
+# 2. DIRECTORIES
+DIRS=("logs" "log_error" "tmp" "tmp/ytdl" "cache" "engine")
+for dir in "${DIRS[@]}"; do
+    mkdir -p "$dir"
+done
+
+# 3. FFMPEG SETUP
+if [ -f "ffmpeg.tar.xz" ] && [ ! -d "ffmpeg-master-latest-linux64-gpl" ]; then
+    echo -e "${CYAN}[SETUP]${NC} Extracting FFmpeg..."
+    tar -xf ffmpeg.tar.xz
+fi
+
+FFMPEG_BIN="$(pwd)/ffmpeg-master-latest-linux64-gpl/bin"
+
+if [ -d "$FFMPEG_BIN" ]; then
+    chmod +x "$FFMPEG_BIN/ffmpeg"
+    chmod +x "$FFMPEG_BIN/ffprobe"
+    
+    export PATH=$FFMPEG_BIN:$PATH
+    
+    if command -v ffmpeg &> /dev/null; then
+        VER=$(ffmpeg -version | head -n 1 | awk '{print $3}')
+        echo -e "${GREEN}[OK]${NC} FFmpeg Ready: $VER"
+    else
+        echo -e "${RED}[FAIL]${NC} FFmpeg binary error!"
+    fi
+else
+    echo -e "${RED}[FAIL]${NC} FFmpeg folder missing!"
+fi
+
+# 4. DEPENDENCIES
+if [ ! -d "py_module" ]; then
+    echo -e "${CYAN}[SETUP]${NC} Installing Dependencies..."
+    python3 -m pip install --upgrade pip --quiet
+    pip install --target=py_module -r requirements.txt
+fi
+
+export PYTHONPATH=$PYTHONPATH:$(pwd)/py_module
+
+if [ -f "./cloudflared" ]; then
+    chmod +x ./cloudflared
+fi
+
+echo -e "${GREEN}[START]${NC} Launching Core..."
+echo ""
+
+python3 main.py
