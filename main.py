@@ -76,20 +76,28 @@ def process_database_ip(ip_address):
         return True, user
     except: return True, {}
 
-# --- TELEGRAM LOGGER ---
+# --- TELEGRAM LOGGER (WITH IP MASKING) ---
 async def send_tele_log(type_log, data):
     if not Config.TELE_LOG_ID: return
     try:
+        # MASKING IP (Sensor 4 digit terakhir)
+        raw_ip = data.get('ip', '0.0.0.0')
+        parts = raw_ip.split('.')
+        if len(parts) == 4:
+            safe_ip = f"{parts[0]}.{parts[1]}.xxx.xxx"
+        else:
+            safe_ip = "xxx.xxx.xxx.xxx"
+
         msg = f"""
-<b>🔔 {type_log}</b>
-━━━━━━━━━━━━
-<b>IP:</b> <code>{data.get('ip')}</code>
-<b>URL:</b> <a href="{data.get('url')}">Link</a>
-<b>Mode:</b> {data.get('type')}
-<b>Speed:</b> {data.get('time')}s
-━━━━━━━━━━━━
+<b>🔔 LOG: {type_log}</b>
+━━━━━━━━━━━━━━━━
+<b>👤 User IP:</b> <code>{safe_ip}</code>
+<b>🔗 Link:</b> <a href="{data.get('url')}">YouTube Video</a>
+<b>📂 Type:</b> {data.get('type').upper()}
+<b>⚡ Speed:</b> {data.get('time')}s
+━━━━━━━━━━━━━━━━
 """
-        await bot.send_message(Config.TELE_LOG_ID, msg)
+        await bot.send_message(Config.TELE_LOG_ID, msg, disable_web_page_preview=True)
     except: pass
 
 # --- BACKGROUND TASKS ---
